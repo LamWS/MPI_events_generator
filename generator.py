@@ -5,7 +5,7 @@ import random
 
 PROCESS = 4
 # 进程数
-LENGTH = 100000
+LENGTH = 1000
 # 产生 event 数量
 MARKOV_STATE_COUNT = 3
 # 用连续多少个状态来预测下一个状态
@@ -21,6 +21,7 @@ FUNC_PARA_MAP = {
     'MPI_Alltoallv': ('sendbuf', 'sendcounts', 'sdispls', 'sendtype', 'recvbuf', 'recvcount'),
     'MPI_Reduce': ('sendbuf', 'recvbuf', 'count', 'datatype', 'op', 'root', 'comm'),
     'MPI_Allreduce': ('sendbuf', 'recvbuf', 'count', 'datatype', 'op', 'comm'),
+    'MPI_Gather': ('sendbuf', 'sendcount', 'sendtype', 'recvbuf', 'recvcount', 'recvtype', 'root', 'comm'),
 }
 
 traces = []
@@ -65,7 +66,7 @@ for event in events:
                                       int(float(event['duration']) * 1000000)))
 
 output_file.close()
-model = markovify.Chain([functions_with_rank[:-50]], PROCESS - 1)
+model = markovify.Chain([functions_with_rank[20:-50]], PROCESS - 1)
 model.compile()
 tries = 0
 status = []
@@ -102,7 +103,10 @@ for state in status:
         for i in range(len(params)):
             output_files[rank].write(FUNC_PARA_MAP[event['function']][i])
             output_files[rank].write(' = ')
-            output_files[rank].write(params[i])
+            if FUNC_PARA_MAP[event['function']][i] == 'datatype':
+                output_files[rank].write("MPI_BYTE,")
+            else:
+                output_files[rank].write(params[i])
     else:
         output_files[rank].write(event['parameters'])
     output_files[rank].write(') ')
